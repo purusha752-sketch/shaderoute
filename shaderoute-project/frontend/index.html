@@ -1,0 +1,2653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShadeRoute AI – Smart Shadow Navigation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  --g50:  #f0fdf4;
+  --g100: #dcfce7;
+  --g200: #bbf7d0;
+  --g300: #86efac;
+  --g400: #4ade80;
+  --g500: #22c55e;
+  --g600: #16a34a;
+  --g700: #15803d;
+  --g800: #166534;
+  --g900: #14532d;
+
+  --white:  #ffffff;
+  --gray50: #f9fafb;
+  --gray100:#f3f4f6;
+  --gray200:#e5e7eb;
+  --gray300:#d1d5db;
+  --gray400:#9ca3af;
+  --gray500:#6b7280;
+  --gray600:#4b5563;
+  --gray700:#374151;
+  --gray800:#1f2937;
+  --gray900:#111827;
+
+  --radius-sm:  10px;
+  --radius-md:  16px;
+  --radius-lg:  24px;
+  --radius-xl:  32px;
+  --radius-full:9999px;
+
+  --shadow-xs: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-sm: 0 4px 12px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04);
+  --shadow-md: 0 8px 24px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.06);
+  --shadow-xl: 0 24px 64px rgba(0,0,0,.12), 0 8px 20px rgba(0,0,0,.06);
+  --shadow-green: 0 8px 32px rgba(34,197,94,.22), 0 2px 8px rgba(34,197,94,.10);
+  --shadow-green-lg: 0 16px 48px rgba(34,197,94,.28), 0 4px 12px rgba(34,197,94,.15);
+
+  --glass-bg:    rgba(255,255,255,.72);
+  --glass-border:rgba(255,255,255,.85);
+
+  --transition: all .25s cubic-bezier(.4,0,.2,1);
+  --spring: all .5s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ═══════════════════════════════════════════════
+   RESET + BASE
+═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  background: var(--gray50);
+  color: var(--gray900);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════════════ */
+.app-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: 64px 1fr;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════
+   TOP NAVBAR
+═══════════════════════════════════════════════ */
+.navbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  background: rgba(255,255,255,.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--g500), var(--g700));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem;
+  box-shadow: var(--shadow-green);
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.15rem;
+  color: var(--gray900);
+  font-weight: 400;
+  letter-spacing: -.3px;
+}
+
+.logo-text span { color: var(--g600); }
+
+.nav-spacer { flex: 1; }
+
+.nav-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gray100);
+  border: 1.5px solid var(--gray200);
+  border-radius: var(--radius-full);
+  padding: 7px 14px;
+  width: 260px;
+  transition: var(--transition);
+}
+.nav-search:focus-within {
+  border-color: var(--g400);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(34,197,94,.12);
+}
+.nav-search input {
+  background: none; border: none; outline: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .85rem; color: var(--gray700);
+  flex: 1;
+}
+.nav-search input::placeholder { color: var(--gray400); }
+.search-icon { color: var(--gray400); font-size: .85rem; }
+
+.nav-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--g300), var(--g500));
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; color: var(--white);
+  font-weight: 600; cursor: pointer;
+  border: 2px solid var(--white);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.nav-pill {
+  font-size: .78rem; font-weight: 500;
+  color: var(--gray500);
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+}
+.nav-pill:hover { color: var(--gray900); background: var(--gray100); }
+.nav-pill.active { color: var(--g700); background: var(--g50); font-weight: 600; }
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════ */
+.sidebar {
+  background: var(--white);
+  border-right: 1px solid var(--gray100);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gray400);
+  padding: 14px 12px 6px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--gray600);
+  text-decoration: none;
+  position: relative;
+}
+.sidebar-item:hover { background: var(--gray50); color: var(--gray900); }
+.sidebar-item.active {
+  background: var(--g50);
+  color: var(--g700);
+  font-weight: 600;
+}
+.sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%; bottom: 20%;
+  width: 3px;
+  background: var(--g500);
+  border-radius: 0 3px 3px 0;
+}
+
+.si-icon {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem;
+  background: var(--gray100);
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.sidebar-item.active .si-icon { background: var(--g100); }
+.sidebar-item:hover .si-icon { background: var(--gray200); }
+
+.si-badge {
+  margin-left: auto;
+  background: var(--g500);
+  color: var(--white);
+  font-size: .62rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray100);
+}
+
+/* ═══════════════════════════════════════════════
+   MAIN CONTENT AREA
+═══════════════════════════════════════════════ */
+.main-content {
+  padding: 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ═══════════════════════════════════════════════
+   SCREEN PANELS (tab-switched)
+═══════════════════════════════════════════════ */
+.screen { display: none; flex-direction: column; gap: 24px; }
+.screen.active { display: flex; }
+
+/* ═══════════════════════════════════════════════
+   PAGE HEADER
+═══════════════════════════════════════════════ */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.page-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.75rem;
+  color: var(--gray900);
+  line-height: 1.2;
+  font-weight: 400;
+}
+.page-title em { color: var(--g600); font-style: italic; }
+.page-sub {
+  font-size: .875rem;
+  color: var(--gray500);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════════ */
+.card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0,0,0,.04);
+  transition: var(--transition);
+}
+.card:hover { box-shadow: var(--shadow-md); }
+
+.card-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+}
+
+.card-green {
+  background: linear-gradient(135deg, var(--g600) 0%, var(--g700) 100%);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  color: var(--white);
+  box-shadow: var(--shadow-green-lg);
+  position: relative;
+  overflow: hidden;
+}
+.card-green::before {
+  content: '';
+  position: absolute;
+  top: -40%; right: -20%;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.card-green::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card-title {
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--gray400);
+  margin-bottom: 8px;
+}
+
+.card-value {
+  font-family: 'DM Serif Display', serif;
+  font-size: 2.4rem;
+  color: var(--gray900);
+  line-height: 1;
+  font-weight: 400;
+}
+.card-value-unit {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .875rem;
+  color: var(--gray500);
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--spring);
+  text-decoration: none;
+  white-space: nowrap;
+  letter-spacing: -.01em;
+}
+.btn:active { transform: scale(.97); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--g500), var(--g600));
+  color: var(--white);
+  box-shadow: var(--shadow-green);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-green-lg);
+}
+
+.btn-secondary {
+  background: var(--g50);
+  color: var(--g700);
+  border: 1.5px solid var(--g200);
+}
+.btn-secondary:hover {
+  background: var(--g100);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gray600);
+  border: 1.5px solid var(--gray200);
+}
+.btn-ghost:hover {
+  background: var(--gray50);
+  border-color: var(--gray300);
+}
+
+.btn-white {
+  background: rgba(255,255,255,.92);
+  color: var(--g700);
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+}
+.btn-white:hover {
+  background: var(--white);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-icon {
+  width: 42px; height: 42px; padding: 0;
+  border-radius: var(--radius-md);
+}
+.btn-lg { padding: 15px 28px; font-size: .95rem; }
+.btn-sm { padding: 8px 16px; font-size: .78rem; }
+
+/* ═══════════════════════════════════════════════
+   INPUTS
+═══════════════════════════════════════════════ */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.input-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--gray600);
+  letter-spacing: .02em;
+}
+.input-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--gray50);
+  border: 1.5px solid var(--gray200);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  transition: var(--transition);
+}
+.input-field:focus-within {
+  border-color: var(--g400);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(34,197,94,.1);
+}
+.input-field input {
+  background: none; border: none; outline: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .875rem; color: var(--gray800);
+  flex: 1; font-weight: 400;
+}
+.input-field input::placeholder { color: var(--gray400); }
+.input-icon { color: var(--gray400); font-size: .9rem; }
+
+/* ═══════════════════════════════════════════════
+   ROUTE TYPE SELECTOR
+═══════════════════════════════════════════════ */
+.route-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.route-option {
+  padding: 16px 12px;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--gray200);
+  background: var(--white);
+  cursor: pointer;
+  transition: var(--spring);
+  text-align: center;
+}
+.route-option:hover {
+  border-color: var(--g300);
+  background: var(--g50);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+.route-option.selected {
+  border-color: var(--g500);
+  background: var(--g50);
+  box-shadow: 0 0 0 3px rgba(34,197,94,.12);
+}
+.ro-icon {
+  font-size: 1.4rem;
+  display: block;
+  margin-bottom: 6px;
+}
+.ro-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--gray700);
+  display: block;
+}
+.ro-sub {
+  font-size: .68rem;
+  color: var(--gray400);
+  margin-top: 2px;
+  display: block;
+}
+.route-option.selected .ro-label { color: var(--g700); }
+
+/* ═══════════════════════════════════════════════
+   MAP CONTAINER
+═══════════════════════════════════════════════ */
+.map-container {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  position: relative;
+  background: var(--g50);
+  border: 1px solid rgba(0,0,0,.06);
+  box-shadow: var(--shadow-md);
+}
+
+.map-canvas {
+  width: 100%;
+  aspect-ratio: 16/7;
+  background: linear-gradient(160deg, #e8f5e9 0%, #f1f8e9 30%, #e0f2e0 60%, #dcedc8 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated map background */
+.map-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(22,163,74,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22,163,74,.07) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Roads */
+.road {
+  position: absolute;
+  background: rgba(255,255,255,.7);
+  border-radius: 3px;
+}
+
+/* Shade route highlight */
+.shade-route {
+  position: absolute;
+  background: linear-gradient(90deg, var(--g400), var(--g500), var(--g600));
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(34,197,94,.5), 0 0 40px rgba(34,197,94,.2);
+  animation: route-pulse 2s ease-in-out infinite;
+}
+@keyframes route-pulse {
+  0%,100%{ box-shadow: 0 0 16px rgba(34,197,94,.5),0 0 32px rgba(34,197,94,.2); }
+  50%    { box-shadow: 0 0 24px rgba(34,197,94,.7),0 0 48px rgba(34,197,94,.35); }
+}
+
+/* Trees on map */
+.map-tree {
+  position: absolute;
+  font-size: .75rem;
+  animation: tree-sway 3s ease-in-out infinite;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.15));
+}
+@keyframes tree-sway {
+  0%,100%{ transform: rotate(-2deg) scale(1); }
+  50%    { transform: rotate(2deg) scale(1.05); }
+}
+
+/* Shadow zones */
+.shadow-zone {
+  position: absolute;
+  background: rgba(0,80,40,.12);
+  border-radius: 50%;
+  border: 1px solid rgba(0,100,50,.15);
+  animation: shadow-breathe 4s ease-in-out infinite;
+}
+@keyframes shadow-breathe {
+  0%,100%{ opacity:.7; transform:scale(1); }
+  50%    { opacity:1; transform:scale(1.04); }
+}
+
+/* Sun indicator */
+.sun-marker {
+  position: absolute;
+  top: 12px; right: 16px;
+  background: var(--white);
+  border-radius: var(--radius-full);
+  padding: 6px 12px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: .72rem; font-weight: 600;
+  box-shadow: var(--shadow-md);
+  color: var(--gray700);
+  border: 1px solid rgba(0,0,0,.06);
+  animation: float-up .6s ease both;
+}
+
+/* User pin */
+.user-pin {
+  position: absolute;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--g500);
+  border: 3px solid var(--white);
+  box-shadow: 0 0 0 6px rgba(34,197,94,.2), var(--shadow-md);
+  animation: pin-pulse 2s ease-in-out infinite;
+}
+@keyframes pin-pulse {
+  0%,100%{ box-shadow: 0 0 0 4px rgba(34,197,94,.2), var(--shadow-md); }
+  50%    { box-shadow: 0 0 0 10px rgba(34,197,94,.08), var(--shadow-md); }
+}
+
+.dest-pin {
+  position: absolute;
+  font-size: 1.3rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
+  animation: dest-drop .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes dest-drop {
+  from{ transform: translateY(-20px) scale(.5); opacity:0; }
+  to  { transform: translateY(0) scale(1); opacity:1; }
+}
+
+/* Map controls overlay */
+.map-overlay-bottom {
+  position: absolute;
+  bottom: 16px; left: 16px; right: 16px;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  pointer-events: none;
+}
+
+.floating-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  box-shadow: var(--shadow-lg);
+  pointer-events: all;
+  animation: float-up .5s ease both;
+}
+@keyframes float-up {
+  from{ opacity:0; transform:translateY(10px); }
+  to  { opacity:1; transform:translateY(0); }
+}
+
+.map-ctrl-btn {
+  width: 38px; height: 38px;
+  background: var(--white);
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  pointer-events: all;
+  transition: var(--transition);
+}
+.map-ctrl-btn:hover {
+  background: var(--g50);
+  border-color: var(--g200);
+}
+.map-ctrls {
+  display: flex; flex-direction: column; gap: 6px;
+  pointer-events: all;
+}
+
+/* ═══════════════════════════════════════════════
+   STAT GRID
+═══════════════════════════════════════════════ */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.stat-card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--gray100);
+  transition: var(--transition);
+  cursor: default;
+}
+.stat-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+
+.sc-icon-wrap {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+.sc-icon-green { background: var(--g100); }
+.sc-icon-amber { background: #fef3c7; }
+.sc-icon-sky   { background: #e0f2fe; }
+.sc-icon-rose  { background: #ffe4e6; }
+
+.sc-value {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.6rem; font-weight: 400;
+  color: var(--gray900);
+  line-height: 1;
+}
+.sc-label {
+  font-size: .75rem; color: var(--gray500);
+  margin-top: 4px; font-weight: 500;
+}
+.sc-change {
+  font-size: .72rem; margin-top: 6px;
+  font-weight: 600; display: flex; align-items: center; gap: 3px;
+}
+.sc-change.positive { color: var(--g600); }
+.sc-change.negative { color: #ef4444; }
+
+/* ═══════════════════════════════════════════════
+   AI SUGGESTION CARDS
+═══════════════════════════════════════════════ */
+.suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.suggestion-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray100);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition: var(--spring);
+  text-decoration: none;
+}
+.suggestion-card:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--g200);
+}
+
+.sc-badge-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+.bg-green-soft  { background: var(--g100); }
+.bg-amber-soft  { background: #fef3c7; }
+.bg-sky-soft    { background: #e0f2fe; }
+.bg-rose-soft   { background: #ffe4e6; }
+.bg-purple-soft { background: #f3e8ff; }
+
+.sc-content { flex: 1; min-width: 0; }
+.sc-heading {
+  font-size: .9rem; font-weight: 600;
+  color: var(--gray800); line-height: 1.3;
+}
+.sc-detail {
+  font-size: .78rem; color: var(--gray500);
+  margin-top: 3px; font-weight: 400;
+}
+
+.sc-arrow {
+  color: var(--gray300); font-size: .85rem;
+  transition: var(--transition);
+}
+.suggestion-card:hover .sc-arrow { color: var(--g500); transform: translateX(3px); }
+
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: .65rem; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.tag-green { background: var(--g100); color: var(--g700); }
+.tag-amber { background: #fef3c7; color: #92400e; }
+.tag-sky   { background: #e0f2fe; color: #0369a1; }
+.tag-rose  { background: #ffe4e6; color: #9f1239; }
+
+/* ═══════════════════════════════════════════════
+   CHART AREA (Dashboard)
+═══════════════════════════════════════════════ */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.chart-card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 22px;
+  border: 1px solid var(--gray100);
+  box-shadow: var(--shadow-xs);
+}
+.chart-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 18px;
+}
+.chart-title {
+  font-size: .875rem; font-weight: 600; color: var(--gray800);
+}
+.chart-legend {
+  display: flex; gap: 12px;
+}
+.cl-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .72rem; color: var(--gray500);
+}
+.cl-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+
+/* Bar Chart */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding: 8px 0;
+}
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.bar {
+  width: 100%;
+  border-radius: 5px 5px 0 0;
+  transition: height .8s cubic-bezier(.4,0,.2,1);
+  min-height: 4px;
+  position: relative;
+  cursor: pointer;
+}
+.bar:hover { filter: brightness(1.1); }
+.bar-label {
+  font-size: .65rem; color: var(--gray400);
+  font-weight: 500;
+}
+
+/* Line chart (SVG) */
+.line-chart-wrap { height: 120px; position: relative; }
+.line-chart-wrap svg { width: 100%; height: 100%; }
+
+/* Heat map grid */
+.heat-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+}
+.heat-cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  transition: transform .2s;
+  cursor: pointer;
+}
+.heat-cell:hover { transform: scale(1.3); z-index: 1; }
+
+/* ═══════════════════════════════════════════════
+   PROFILE SCREEN
+═══════════════════════════════════════════════ */
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--g600), var(--g700));
+  border-radius: var(--radius-xl);
+  color: var(--white);
+  box-shadow: var(--shadow-green-lg);
+  position: relative;
+  overflow: hidden;
+}
+.profile-hero::before {
+  content: '';
+  position: absolute;
+  top: -30%; right: -10%;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,.15) 0%, transparent 70%);
+}
+.profile-avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  border: 3px solid rgba(255,255,255,.4);
+  position: relative; z-index: 1;
+}
+.profile-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.35rem; font-weight: 400;
+  position: relative; z-index: 1;
+}
+.profile-sub {
+  font-size: .8rem; opacity: .8;
+  margin-top: 3px;
+  position: relative; z-index: 1;
+}
+.profile-stats {
+  margin-left: auto;
+  display: flex; gap: 20px;
+  position: relative; z-index: 1;
+}
+.ps-item { text-align: center; }
+.ps-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.4rem; font-weight: 400;
+  display: block; line-height: 1;
+}
+.ps-label { font-size: .65rem; opacity: .75; margin-top: 3px; }
+
+/* Preferences */
+.pref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pref-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  border: 1px solid var(--gray100);
+  transition: var(--transition);
+}
+.pref-item:hover { border-color: var(--g200); background: var(--g50); }
+
+.pref-icon {
+  width: 38px; height: 38px;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .95rem;
+  flex-shrink: 0;
+}
+.pref-text { flex: 1; }
+.pref-title { font-size: .875rem; font-weight: 600; color: var(--gray800); }
+.pref-desc { font-size: .75rem; color: var(--gray400); margin-top: 2px; }
+
+/* Toggle switch */
+.toggle {
+  width: 44px; height: 24px;
+  background: var(--gray200);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.toggle.on { background: var(--g500); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--white);
+  top: 2px; left: 2px;
+  transition: var(--spring);
+  box-shadow: var(--shadow-sm);
+}
+.toggle.on::after { transform: translateX(20px); }
+
+/* Slider */
+.slider-wrap { margin-top: 8px; }
+.slider-label {
+  display: flex; justify-content: space-between;
+  font-size: .72rem; color: var(--gray500);
+  margin-bottom: 6px;
+}
+.slider {
+  -webkit-appearance: none;
+  width: 100%; height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--g500) 0%, var(--g500) 70%, var(--gray200) 70%);
+  outline: none;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px solid var(--g500);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ═══════════════════════════════════════════════
+   MOBILE NAV BAR
+═══════════════════════════════════════════════ */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid rgba(0,0,0,.06);
+  padding: 8px 0 20px;
+  z-index: 200;
+}
+.mn-items { display: flex; }
+.mn-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; padding: 6px 8px;
+  cursor: pointer; transition: var(--transition);
+  font-size: .62rem; font-weight: 600; color: var(--gray400);
+  text-decoration: none;
+}
+.mn-item.active { color: var(--g600); }
+.mn-icon {
+  width: 30px; height: 30px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .95rem; transition: var(--spring);
+}
+.mn-item.active .mn-icon {
+  background: var(--g100);
+  transform: scale(1.1);
+}
+
+/* ═══════════════════════════════════════════════
+   HOME SCREEN LAYOUT
+═══════════════════════════════════════════════ */
+.home-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.home-left { display: flex; flex-direction: column; gap: 16px; }
+
+/* Welcome banner */
+.welcome-banner {
+  background: linear-gradient(135deg, var(--g600) 0%, var(--g700) 100%);
+  border-radius: var(--radius-xl);
+  padding: 22px;
+  color: var(--white);
+  box-shadow: var(--shadow-green-lg);
+  position: relative;
+  overflow: hidden;
+}
+.wb-bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+}
+.wb-greeting {
+  font-size: .78rem; opacity: .8; margin-bottom: 4px;
+  font-weight: 500; letter-spacing: .02em;
+}
+.wb-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.4rem; font-weight: 400; line-height: 1.2;
+}
+.wb-sub {
+  font-size: .78rem; opacity: .75; margin-top: 6px;
+}
+.wb-temp-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.15);
+}
+.wb-temp-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,.15);
+  padding: 5px 10px; border-radius: var(--radius-full);
+  font-size: .75rem; font-weight: 600;
+}
+
+/* Env stats strip */
+.env-strip {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.env-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  border: 1px solid var(--gray100);
+  box-shadow: var(--shadow-xs);
+  display: flex; align-items: center; gap: 10px;
+  transition: var(--transition); cursor: default;
+}
+.env-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.env-icon { font-size: 1.3rem; }
+.env-info {}
+.env-val { font-size: 1.1rem; font-weight: 700; color: var(--gray900); line-height: 1; }
+.env-label { font-size: .68rem; color: var(--gray400); margin-top: 2px; }
+
+/* Route search block */
+.route-search-block {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  border: 1px solid var(--gray100);
+  box-shadow: var(--shadow-sm);
+}
+.rsb-title { font-size: .85rem; font-weight: 700; color: var(--gray700); margin-bottom: 14px; }
+
+.route-inputs {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 14px;
+}
+
+.route-dot-line {
+  display: flex; gap: 12px; align-items: center;
+}
+.rdl-dots {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px; padding-top: 2px;
+}
+.rdl-dot-green { width: 10px; height: 10px; border-radius: 50%; background: var(--g500); flex-shrink: 0; }
+.rdl-dot-pink  { width: 10px; height: 10px; border-radius: 50%; background: #f43f5e; flex-shrink: 0; }
+.rdl-line { width: 1.5px; height: 16px; background: var(--gray200); border-radius: 1px; }
+.rdl-inputs { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+.ri-field {
+  background: var(--gray50);
+  border: 1.5px solid var(--gray200);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .85rem; color: var(--gray800);
+  outline: none; width: 100%;
+  transition: var(--transition);
+}
+.ri-field:focus {
+  border-color: var(--g400);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(34,197,94,.1);
+}
+.ri-field::placeholder { color: var(--gray400); }
+
+/* ═══════════════════════════════════════════════
+   PROGRESS / HEALTH BARS
+═══════════════════════════════════════════════ */
+.progress-bar-wrap { margin-bottom: 14px; }
+.pb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.pb-label { font-size: .78rem; font-weight: 600; color: var(--gray700); }
+.pb-value { font-size: .78rem; font-weight: 700; color: var(--g700); }
+.progress-track {
+  height: 8px;
+  background: var(--gray100);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1.2s cubic-bezier(.4,0,.2,1);
+}
+
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════ */
+@keyframes fade-in-up {
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.anim-1 { animation: fade-in-up .4s ease both; }
+.anim-2 { animation: fade-in-up .4s .08s ease both; }
+.anim-3 { animation: fade-in-up .4s .16s ease both; }
+.anim-4 { animation: fade-in-up .4s .24s ease both; }
+.anim-5 { animation: fade-in-up .4s .32s ease both; }
+.anim-6 { animation: fade-in-up .4s .40s ease both; }
+
+/* ═══════════════════════════════════════════════
+   DIVIDER
+═══════════════════════════════════════════════ */
+.divider { height: 1px; background: var(--gray100); margin: 4px 0; }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .stat-grid { grid-template-columns: repeat(2,1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
+  .home-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .mobile-nav { display: flex; flex-direction: column; }
+  .main-content { padding: 16px 16px 100px; }
+  .navbar { padding: 0 16px; }
+  .nav-search { display: none; }
+  .nav-pill { display: none; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .route-selector { grid-template-columns: 1fr 1fr 1fr; }
+  .profile-stats { display: none; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ══════════════════════════════════════════
+       NAVBAR
+  ══════════════════════════════════════════ -->
+  <nav class="navbar">
+    <a class="nav-logo" href="#" onclick="return false">
+      <div class="logo-icon">🌿</div>
+      <span class="logo-text">Shade<span>Route</span> AI</span>
+    </a>
+
+    <div style="display:flex;gap:4px;margin-left:24px">
+      <a class="nav-pill active" onclick="switchScreen('home')">Home</a>
+      <a class="nav-pill" onclick="switchScreen('map')">Map</a>
+      <a class="nav-pill" onclick="switchScreen('suggestions')">AI Insights</a>
+      <a class="nav-pill" onclick="switchScreen('dashboard')">Dashboard</a>
+      <a class="nav-pill" onclick="switchScreen('profile')">Profile</a>
+    </div>
+
+    <div class="nav-spacer"></div>
+
+    <div class="nav-search">
+      <span class="search-icon">🔍</span>
+      <input placeholder="Search places in Bengaluru..." id="navSearchInput">
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-left:12px">
+      <button class="btn btn-secondary btn-sm" onclick="switchScreen('map')">🗺️ Navigate</button>
+      <div class="nav-avatar" title="Shreyas Kumar">SK</div>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════════
+       SIDEBAR
+  ══════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-section">Navigation</div>
+    <a class="sidebar-item active" id="sb-home" onclick="switchScreen('home')">
+      <div class="si-icon">🏠</div> Home
+    </a>
+    <a class="sidebar-item" id="sb-map" onclick="switchScreen('map')">
+      <div class="si-icon">🗺️</div> Map View
+    </a>
+    <a class="sidebar-item" id="sb-suggestions" onclick="switchScreen('suggestions')">
+      <div class="si-icon">✨</div> AI Suggestions
+      <span class="si-badge">4</span>
+    </a>
+    <a class="sidebar-item" id="sb-dashboard" onclick="switchScreen('dashboard')">
+      <div class="si-icon">📊</div> Dashboard
+    </a>
+
+    <div class="sidebar-section">Account</div>
+    <a class="sidebar-item" id="sb-profile" onclick="switchScreen('profile')">
+      <div class="si-icon">👤</div> Profile
+    </a>
+    <a class="sidebar-item">
+      <div class="si-icon">⚙️</div> Settings
+    </a>
+
+    <div class="divider"></div>
+
+    <div class="sidebar-footer">
+      <!-- Current conditions mini widget -->
+      <div style="background:var(--g50);border-radius:14px;padding:14px;border:1px solid var(--g100);">
+        <div style="font-size:.68rem;font-weight:700;color:var(--g700);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Bengaluru Now</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:.78rem;color:var(--gray600)">🌡️ Temperature</span>
+          <span style="font-size:.82rem;font-weight:700;color:var(--gray800)" id="sb-temp">38°C</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:.78rem;color:var(--gray600)">💨 AQI</span>
+          <span style="font-size:.82rem;font-weight:700;color:#f59e0b" id="sb-aqi">142</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:.78rem;color:var(--gray600)">🌳 Tree Cover</span>
+          <span style="font-size:.82rem;font-weight:700;color:var(--g700)">38%</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- ▸▸▸ HOME SCREEN ◂◂◂ -->
+    <div class="screen active" id="screen-home">
+
+      <div class="page-header anim-1">
+        <div>
+          <div class="page-title">Good morning, <em>Shreyas</em> 🌿</div>
+          <div class="page-sub">Today is a warm day — let's find you the coolest route in Bengaluru</div>
+        </div>
+        <button class="btn btn-primary" onclick="switchScreen('map')">🗺️ Open Full Map</button>
+      </div>
+
+      <div class="home-grid">
+        <!-- Left column -->
+        <div class="home-left">
+
+          <!-- Welcome banner -->
+          <div class="welcome-banner anim-2">
+            <div class="wb-bg-circle" style="width:180px;height:180px;top:-60px;right:-40px"></div>
+            <div class="wb-bg-circle" style="width:100px;height:100px;bottom:-30px;left:-20px"></div>
+            <div class="wb-greeting">Today's Condition</div>
+            <div class="wb-title">Hot & Partly Sunny<br>in Bengaluru</div>
+            <div class="wb-sub">Shadow coverage: 43% avg · Best shade: Lalbagh, Cubbon Park</div>
+            <div class="wb-temp-row">
+              <div class="wb-temp-badge">🌡️ 38°C Feels 41°C</div>
+              <div class="wb-temp-badge">☀️ UV 7.2</div>
+              <div class="wb-temp-badge">💧 65% Humid</div>
+            </div>
+          </div>
+
+          <!-- Route planner -->
+          <div class="route-search-block anim-3">
+            <div class="rsb-title">Plan Your Route</div>
+            <div class="route-dot-line">
+              <div class="rdl-dots">
+                <div class="rdl-dot-green"></div>
+                <div class="rdl-line"></div>
+                <div class="rdl-dot-pink"></div>
+              </div>
+              <div class="rdl-inputs">
+                <input class="ri-field" placeholder="📍 Current location — Koramangala" id="originInput">
+                <input class="ri-field" placeholder="🎯 Destination — MG Road Metro" id="destInput">
+              </div>
+            </div>
+
+            <div class="route-selector" style="margin:14px 0 16px">
+              <div class="route-option selected" onclick="selectRoute(this,'cool')">
+                <span class="ro-icon">🌿</span>
+                <span class="ro-label">Cool Route</span>
+                <span class="ro-sub">Most shade</span>
+              </div>
+              <div class="route-option" onclick="selectRoute(this,'fast')">
+                <span class="ro-icon">⚡</span>
+                <span class="ro-label">Fast Route</span>
+                <span class="ro-sub">Shortest</span>
+              </div>
+              <div class="route-option" onclick="selectRoute(this,'safe')">
+                <span class="ro-icon">🛡️</span>
+                <span class="ro-label">Safe Route</span>
+                <span class="ro-sub">Low risk</span>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" style="width:100%" onclick="switchScreen('map')">
+              🌿 Find Shady Route
+            </button>
+          </div>
+
+          <!-- Env stats -->
+          <div class="env-strip anim-4">
+            <div class="env-card">
+              <span class="env-icon">🌑</span>
+              <div class="env-info">
+                <div class="env-val" id="shadePct">43%</div>
+                <div class="env-label">Avg Shadow</div>
+              </div>
+            </div>
+            <div class="env-card">
+              <span class="env-icon">🌳</span>
+              <div class="env-info">
+                <div class="env-val" style="color:var(--g600)">38%</div>
+                <div class="env-label">Tree Cover</div>
+              </div>
+            </div>
+            <div class="env-card">
+              <span class="env-icon">💨</span>
+              <div class="env-info">
+                <div class="env-val" style="color:#f59e0b">142</div>
+                <div class="env-label">AQI</div>
+              </div>
+            </div>
+            <div class="env-card">
+              <span class="env-icon">☀️</span>
+              <div class="env-info">
+                <div class="env-val" style="color:#ef4444">7.2</div>
+                <div class="env-label">UV Index</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Map preview -->
+        <div class="anim-3">
+          <div class="map-container">
+            <div class="map-canvas" id="homeMap">
+              <div class="map-grid"></div>
+
+              <!-- Roads -->
+              <div class="road" style="width:100%;height:3px;top:45%"></div>
+              <div class="road" style="width:100%;height:2px;top:62%;opacity:.5"></div>
+              <div class="road" style="height:100%;width:3px;left:38%"></div>
+              <div class="road" style="height:100%;width:2px;left:58%;opacity:.5"></div>
+              <div class="road" style="height:100%;width:2px;left:75%;opacity:.4"></div>
+
+              <!-- Shadow zones -->
+              <div class="shadow-zone" style="width:140px;height:90px;top:22%;left:15%;border-radius:50%"></div>
+              <div class="shadow-zone" style="width:100px;height:70px;top:55%;left:48%;border-radius:50%"></div>
+              <div class="shadow-zone" style="width:80px;height:60px;top:18%;left:62%;border-radius:50%"></div>
+
+              <!-- Shaded route highlight -->
+              <div class="shade-route" style="width:38%;height:4px;top:44.5%;left:37%"></div>
+              <div class="shade-route" style="width:4px;height:24%;top:21%;left:74.8%"></div>
+
+              <!-- Trees -->
+              <div class="map-tree" style="top:24%;left:18%">🌳</div>
+              <div class="map-tree" style="top:28%;left:25%;animation-delay:.5s">🌲</div>
+              <div class="map-tree" style="top:20%;left:65%;animation-delay:.8s">🌳</div>
+              <div class="map-tree" style="top:58%;left:52%;animation-delay:1.2s">🌿</div>
+              <div class="map-tree" style="top:15%;left:70%;animation-delay:.3s">🌲</div>
+              <div class="map-tree" style="top:35%;left:80%;animation-delay:1.5s">🌳</div>
+
+              <!-- Pins -->
+              <div class="user-pin" style="top:42%;left:36%;transform:translate(-50%,-50%)"></div>
+              <div class="dest-pin" style="top:17%;left:73%;transform:translate(-50%,-100%)">📍</div>
+
+              <!-- Sun marker -->
+              <div class="sun-marker">☀️ Alt 58° · Shadow 0.63x</div>
+
+              <!-- Floating route info card -->
+              <div class="map-overlay-bottom">
+                <div class="floating-card" style="min-width:200px">
+                  <div style="font-size:.65rem;font-weight:700;color:var(--g700);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">🌿 Cool Route</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                    <div>
+                      <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--gray900)">2.3</div>
+                      <div style="font-size:.62rem;color:var(--gray400)">km</div>
+                    </div>
+                    <div>
+                      <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--g600)">72%</div>
+                      <div style="font-size:.62rem;color:var(--gray400)">shaded</div>
+                    </div>
+                    <div>
+                      <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--gray900)">36°C</div>
+                      <div style="font-size:.62rem;color:var(--gray400)">avg temp</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="map-ctrls">
+                  <div class="map-ctrl-btn" title="Zoom in">+</div>
+                  <div class="map-ctrl-btn" title="Zoom out">−</div>
+                  <div class="map-ctrl-btn" title="My location">◎</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Below map: quick actions -->
+            <div style="padding:16px 20px;background:var(--white);display:flex;align-items:center;gap:10px;border-top:1px solid var(--gray100)">
+              <div style="font-size:.8rem;color:var(--gray500);flex:1">
+                12.9716°N, 77.5946°E · Bengaluru · Updated 1 min ago
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="switchScreen('map')">Full Map View →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat grid -->
+      <div class="stat-grid anim-5">
+        <div class="stat-card">
+          <div class="sc-icon-wrap sc-icon-green">🌿</div>
+          <div class="sc-value">72<span class="card-value-unit">%</span></div>
+          <div class="sc-label">Route Shade Coverage</div>
+          <div class="sc-change positive">↑ +12% from yesterday</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon-wrap sc-icon-amber">🌡️</div>
+          <div class="sc-value">38<span class="card-value-unit">°C</span></div>
+          <div class="sc-label">Current Temperature</div>
+          <div class="sc-change negative">↑ +3°C from morning</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon-wrap sc-icon-sky">💨</div>
+          <div class="sc-value">142<span class="card-value-unit"> aqi</span></div>
+          <div class="sc-label">Air Quality Index</div>
+          <div class="sc-change negative">↑ Moderate — unhealthy</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon-wrap sc-icon-rose">🚶</div>
+          <div class="sc-value">1.2<span class="card-value-unit">km</span></div>
+          <div class="sc-label">Today's Walk Distance</div>
+          <div class="sc-change positive">↑ +0.4km from avg</div>
+        </div>
+      </div>
+
+    </div>
+    <!-- ▸▸▸ END HOME ◂◂◂ -->
+
+
+    <!-- ▸▸▸ MAP SCREEN ◂◂◂ -->
+    <div class="screen" id="screen-map">
+      <div class="page-header anim-1">
+        <div>
+          <div class="page-title">Map <em>Navigation</em></div>
+          <div class="page-sub">Bengaluru shadow-aware routing · 12.9716°N, 77.5946°E</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm">📍 My Location</button>
+          <button class="btn btn-primary btn-sm" onclick="startNavigation()">🌿 Start Route</button>
+        </div>
+      </div>
+
+      <!-- Full map view -->
+      <div class="anim-2">
+        <div class="map-container">
+          <div class="map-canvas" style="aspect-ratio:16/9">
+            <div class="map-grid"></div>
+            <div class="road" style="width:100%;height:3px;top:40%"></div>
+            <div class="road" style="width:100%;height:2px;top:58%"></div>
+            <div class="road" style="width:100%;height:2px;top:72%"></div>
+            <div class="road" style="height:100%;width:3px;left:35%"></div>
+            <div class="road" style="height:100%;width:2px;left:52%"></div>
+            <div class="road" style="height:100%;width:2px;left:70%"></div>
+            <div class="road" style="height:100%;width:2px;left:82%"></div>
+            <div class="road" style="width:60%;height:2px;top:30%;left:20%;transform:rotate(8deg);opacity:.5"></div>
+
+            <div class="shadow-zone" style="width:160px;height:110px;top:18%;left:12%"></div>
+            <div class="shadow-zone" style="width:120px;height:80px;top:52%;left:45%"></div>
+            <div class="shadow-zone" style="width:90px;height:70px;top:15%;left:60%"></div>
+            <div class="shadow-zone" style="width:140px;height:90px;top:62%;left:20%"></div>
+            <div class="shadow-zone" style="width:80px;height:60px;top:40%;left:75%"></div>
+
+            <!-- Shade route — glowing green path -->
+            <div class="shade-route" style="width:36%;height:5px;top:39.5%;left:34%"></div>
+            <div class="shade-route" style="width:5px;height:30%;top:10%;left:69.8%"></div>
+            <div class="shade-route" style="width:20%;height:5px;top:39.5%;left:70%"></div>
+
+            <!-- Trees -->
+            <div class="map-tree" style="top:20%;left:14%">🌳</div>
+            <div class="map-tree" style="top:26%;left:20%;animation-delay:.4s">🌲</div>
+            <div class="map-tree" style="top:16%;left:62%;animation-delay:.9s">🌳</div>
+            <div class="map-tree" style="top:56%;left:48%;animation-delay:1.1s">🌿</div>
+            <div class="map-tree" style="top:12%;left:72%;animation-delay:.2s">🌲</div>
+            <div class="map-tree" style="top:65%;left:22%;animation-delay:1.4s">🌳</div>
+            <div class="map-tree" style="top:42%;left:77%;animation-delay:.7s">🌳</div>
+            <div class="map-tree" style="top:32%;left:88%;animation-delay:1.8s">🌲</div>
+
+            <div class="user-pin" style="top:38%;left:33%;transform:translate(-50%,-50%)"></div>
+            <div class="dest-pin" style="top:7%;left:88%;transform:translate(-50%,-100%)">📍</div>
+
+            <div class="sun-marker">☀️ Alt 72° · Azimuth 215° · Shadow 0.33x</div>
+
+            <!-- Nav instruction overlay -->
+            <div style="position:absolute;top:14px;left:14px">
+              <div class="floating-card" style="display:flex;align-items:center;gap:12px;min-width:240px">
+                <div style="font-size:1.8rem;animation:nav-bounce .8s ease-in-out infinite">⬆️</div>
+                <div>
+                  <div style="font-size:.85rem;font-weight:700;color:var(--gray900)">Continue Straight</div>
+                  <div style="font-size:.72rem;color:var(--g600)">🌿 Following shadiest path</div>
+                </div>
+                <div style="margin-left:auto;font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--g600)">850m</div>
+              </div>
+            </div>
+
+            <div class="map-overlay-bottom">
+              <div class="floating-card" style="min-width:260px">
+                <div style="font-size:.65rem;font-weight:700;color:var(--g700);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">🌿 Route Details</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+                  <div>
+                    <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--gray900)">2.3</div>
+                    <div style="font-size:.62rem;color:var(--gray400)">km total</div>
+                  </div>
+                  <div>
+                    <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--g600)">72%</div>
+                    <div style="font-size:.62rem;color:var(--gray400)">shaded</div>
+                  </div>
+                  <div>
+                    <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--gray900)">36°C</div>
+                    <div style="font-size:.62rem;color:var(--gray400)">avg temp</div>
+                  </div>
+                  <div>
+                    <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--gray900)">22m</div>
+                    <div style="font-size:.62rem;color:var(--gray400)">ETA</div>
+                  </div>
+                </div>
+              </div>
+              <div class="map-ctrls">
+                <div class="map-ctrl-btn">+</div>
+                <div class="map-ctrl-btn">−</div>
+                <div class="map-ctrl-btn">◎</div>
+                <div class="map-ctrl-btn">🗺️</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Layer toggles below map -->
+          <div style="padding:14px 20px;background:var(--white);display:flex;align-items:center;gap:8px;border-top:1px solid var(--gray100);flex-wrap:wrap">
+            <span style="font-size:.72rem;font-weight:700;color:var(--gray500);margin-right:4px">LAYERS</span>
+            <button class="btn btn-secondary btn-sm layer-btn active-layer" onclick="toggleLayer(this)">🌑 Shadow</button>
+            <button class="btn btn-ghost btn-sm layer-btn" onclick="toggleLayer(this)">🔥 Heat</button>
+            <button class="btn btn-ghost btn-sm layer-btn" onclick="toggleLayer(this)">🌳 Trees</button>
+            <button class="btn btn-ghost btn-sm layer-btn" onclick="toggleLayer(this)">💨 AQI</button>
+            <button class="btn btn-ghost btn-sm layer-btn" onclick="toggleLayer(this)">👥 Crowd</button>
+            <div style="margin-left:auto;font-size:.72rem;color:var(--gray400)">12.9716°N · 77.5946°E · Bengaluru</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route comparison -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px" class="anim-3">
+        <div class="card" style="border:2px solid var(--g300);background:var(--g50);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-size:.75rem;font-weight:700;color:var(--g700)">🌿 COOL ROUTE</span>
+            <span class="tag tag-green">RECOMMENDED</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="pb-header"><div class="pb-label">Shadow Coverage</div><div class="pb-value">72%</div></div>
+            <div class="progress-track"><div class="progress-fill" style="width:72%;background:var(--g500)"></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+            <div style="font-size:.75rem;color:var(--gray600)">📏 2.3 km</div>
+            <div style="font-size:.75rem;color:var(--gray600)">⏱ 22 min</div>
+            <div style="font-size:.75rem;color:var(--gray600)">🌡️ 36°C</div>
+            <div style="font-size:.75rem;color:var(--gray600)">⭐ Score 0.84</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-size:.75rem;font-weight:700;color:var(--gray700);margin-bottom:12px">⚡ FAST ROUTE</div>
+          <div class="progress-bar-wrap">
+            <div class="pb-header"><div class="pb-label">Shadow Coverage</div><div class="pb-value">31%</div></div>
+            <div class="progress-track"><div class="progress-fill" style="width:31%;background:#f59e0b"></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+            <div style="font-size:.75rem;color:var(--gray600)">📏 1.8 km</div>
+            <div style="font-size:.75rem;color:var(--gray600)">⏱ 16 min</div>
+            <div style="font-size:.75rem;color:var(--gray600)">🌡️ 41°C</div>
+            <div style="font-size:.75rem;color:var(--gray600)">⭐ Score 0.68</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-size:.75rem;font-weight:700;color:var(--gray700);margin-bottom:12px">🛡️ SAFE ROUTE</div>
+          <div class="progress-bar-wrap">
+            <div class="pb-header"><div class="pb-label">Shadow Coverage</div><div class="pb-value">58%</div></div>
+            <div class="progress-track"><div class="progress-fill" style="width:58%;background:#3b82f6"></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+            <div style="font-size:.75rem;color:var(--gray600)">📏 2.6 km</div>
+            <div style="font-size:.75rem;color:var(--gray600)">⏱ 25 min</div>
+            <div style="font-size:.75rem;color:var(--gray600)">🌡️ 37°C</div>
+            <div style="font-size:.75rem;color:var(--gray600)">⭐ Score 0.79</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- END MAP -->
+
+
+    <!-- ▸▸▸ AI SUGGESTIONS ◂◂◂ -->
+    <div class="screen" id="screen-suggestions">
+      <div class="page-header anim-1">
+        <div>
+          <div class="page-title">AI <em>Insights</em></div>
+          <div class="page-sub">Personalised suggestions from ShadeRoute AI for your walk today</div>
+        </div>
+        <button class="btn btn-primary btn-sm">🔄 Refresh</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--gray500);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px">Route Suggestions</div>
+          <div class="suggestion-list anim-2">
+            <div class="suggestion-card">
+              <div class="sc-badge-icon bg-green-soft">🌿</div>
+              <div class="sc-content">
+                <div class="sc-heading">This route is cooler by 3°C</div>
+                <div class="sc-detail">Via Church Street — 68% shaded · MG Road tunnel trees</div>
+                <div style="margin-top:6px"><span class="tag tag-green">Cool Route</span></div>
+              </div>
+              <div class="sc-arrow">›</div>
+            </div>
+            <div class="suggestion-card">
+              <div class="sc-badge-icon bg-sky-soft">🌳</div>
+              <div class="sc-content">
+                <div class="sc-heading">More trees available ahead</div>
+                <div class="sc-detail">Lalbagh Boulevard section — Rain tree canopy for 800m</div>
+                <div style="margin-top:6px"><span class="tag tag-sky">NDVI 0.68</span></div>
+              </div>
+              <div class="sc-arrow">›</div>
+            </div>
+            <div class="suggestion-card">
+              <div class="sc-badge-icon bg-purple-soft">💨</div>
+              <div class="sc-content">
+                <div class="sc-heading">Less pollution via this path</div>
+                <div class="sc-detail">Avoid Silk Board — AQI 188 · Residential lane AQI 92</div>
+                <div style="margin-top:6px"><span class="tag tag-sky">Air Quality</span></div>
+              </div>
+              <div class="sc-arrow">›</div>
+            </div>
+            <div class="suggestion-card">
+              <div class="sc-badge-icon bg-amber-soft">☀️</div>
+              <div class="sc-content">
+                <div class="sc-heading">Best walking window: 6–9 AM</div>
+                <div class="sc-detail">Sun altitude low — shadow length 2.4x · UV index 1.8</div>
+                <div style="margin-top:6px"><span class="tag tag-amber">Sun Alert</span></div>
+              </div>
+              <div class="sc-arrow">›</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--gray500);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px">Urban Intelligence</div>
+          <div class="suggestion-list anim-3">
+            <div class="card anim-3" style="padding:20px">
+              <div style="font-size:.78rem;font-weight:700;color:var(--gray700);margin-bottom:14px">🤖 AI Heat Stress Assessment</div>
+              <div style="font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--g600);margin-bottom:4px">LOW RISK</div>
+              <div style="font-size:.78rem;color:var(--gray500);margin-bottom:14px">WBGT 26.4°C · For 30-year adult · 5 km/h walk</div>
+              <div class="progress-bar-wrap">
+                <div class="pb-header"><div class="pb-label">Heat Stress Level</div><div class="pb-value">28%</div></div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:28%;background:linear-gradient(90deg,var(--g500),#86efac)"></div>
+                </div>
+              </div>
+              <div style="font-size:.75rem;color:var(--gray500);margin-top:10px">💧 Drink water every 20 min · 🌿 Shade available on selected route</div>
+            </div>
+
+            <div class="card anim-4" style="padding:20px">
+              <div style="font-size:.78rem;font-weight:700;color:var(--gray700);margin-bottom:14px">🏗️ Urban Planner Tips</div>
+              <div class="suggestion-list">
+                <div class="suggestion-card" style="padding:12px 14px">
+                  <div class="sc-badge-icon bg-green-soft" style="width:36px;height:36px;border-radius:10px;font-size:.9rem">🌱</div>
+                  <div class="sc-content">
+                    <div class="sc-heading" style="font-size:.8rem">Plant trees on Silk Board stretch</div>
+                    <div class="sc-detail">−4.5°C LST · Est. cost ₹4.2 lakh</div>
+                  </div>
+                </div>
+                <div class="suggestion-card" style="padding:12px 14px">
+                  <div class="sc-badge-icon bg-sky-soft" style="width:36px;height:36px;border-radius:10px;font-size:.9rem">🏗️</div>
+                  <div class="sc-content">
+                    <div class="sc-heading" style="font-size:.8rem">Shade canopy at Marathahalli</div>
+                    <div class="sc-detail">Covers 200m · −3.8°C felt temp</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- END SUGGESTIONS -->
+
+
+    <!-- ▸▸▸ DASHBOARD ◂◂◂ -->
+    <div class="screen" id="screen-dashboard">
+      <div class="page-header anim-1">
+        <div>
+          <div class="page-title">City <em>Dashboard</em></div>
+          <div class="page-sub">Bengaluru real-time climate intelligence · Updated 2 min ago</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm">📅 Today</button>
+          <button class="btn btn-primary btn-sm">⬇️ Export</button>
+        </div>
+      </div>
+
+      <div class="stat-grid anim-2">
+        <div class="stat-card">
+          <div class="sc-icon-wrap sc-icon-amber">🌡️</div>
+          <div class="sc-value">44.8<span class="card-value-unit">°C</span></div>
+          <div class="sc-label">Peak Heat Zone (Silk Board)</div>
+          <div class="sc-change negative">↑ EXTREME zone</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon-wrap sc-icon-green">🌑</div>
+          <div class="sc-value">43<span class="card-value-unit">%</span></div>
+          <div class="sc-label">City Avg Shadow Coverage</div>
+          <div class="sc-change positive">↑ +6% from last week</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon-wrap sc-icon-sky">🌳</div>
+          <div class="sc-value">0.42<span class="card-value-unit"> ndvi</span></div>
+          <div class="sc-label">Avg Vegetation Index</div>
+          <div class="sc-change negative">↓ −0.03 from last month</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon-wrap sc-icon-rose">👥</div>
+          <div class="sc-value">8<span class="card-value-unit"> zones</span></div>
+          <div class="sc-label">Active Heat Danger Zones</div>
+          <div class="sc-change negative">↑ +2 from yesterday</div>
+        </div>
+      </div>
+
+      <div class="chart-grid anim-3">
+        <!-- Bar chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Hourly Temperature — Today</div>
+            <div class="chart-legend">
+              <div class="cl-item"><div class="cl-dot" style="background:var(--g500)"></div>Temp °C</div>
+              <div class="cl-item"><div class="cl-dot" style="background:#bfdbfe"></div>Shadow%</div>
+            </div>
+          </div>
+          <div class="bar-chart" id="tempChart">
+            <!-- bars injected by JS -->
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px">
+            <span style="font-size:.62rem;color:var(--gray400)">6 AM</span>
+            <span style="font-size:.62rem;color:var(--gray400)">12 PM</span>
+            <span style="font-size:.62rem;color:var(--gray400)">6 PM</span>
+            <span style="font-size:.62rem;color:var(--gray400)">11 PM</span>
+          </div>
+        </div>
+
+        <!-- Heat map grid -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">City Heat Map Grid</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--gray400)">
+              <span style="background:var(--g200);padding:2px 6px;border-radius:3px">Cool</span>
+              <span style="background:#fed7aa;padding:2px 6px;border-radius:3px">Hot</span>
+              <span style="background:#fca5a5;padding:2px 6px;border-radius:3px">Extreme</span>
+            </div>
+          </div>
+          <div class="heat-grid" id="heatGrid"></div>
+          <div style="font-size:.68rem;color:var(--gray400);margin-top:8px;text-align:center">Bengaluru 10×10 Zone Grid · Click zone for details</div>
+        </div>
+
+        <!-- Shadow coverage -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Shadow Coverage by Zone</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="progress-bar-wrap" style="margin:0">
+              <div class="pb-header"><div class="pb-label">🌳 Lalbagh Garden</div><div class="pb-value">88%</div></div>
+              <div class="progress-track"><div class="progress-fill" style="width:88%;background:var(--g500)"></div></div>
+            </div>
+            <div class="progress-bar-wrap" style="margin:0">
+              <div class="pb-header"><div class="pb-label">🌿 Cubbon Park</div><div class="pb-value">85%</div></div>
+              <div class="progress-track"><div class="progress-fill" style="width:85%;background:var(--g500)"></div></div>
+            </div>
+            <div class="progress-bar-wrap" style="margin:0">
+              <div class="pb-header"><div class="pb-label">🛣️ MG Road</div><div class="pb-value">72%</div></div>
+              <div class="progress-track"><div class="progress-fill" style="width:72%;background:var(--g400)"></div></div>
+            </div>
+            <div class="progress-bar-wrap" style="margin:0">
+              <div class="pb-header"><div class="pb-label">🏘️ Koramangala</div><div class="pb-value">50%</div></div>
+              <div class="progress-track"><div class="progress-fill" style="width:50%;background:#f59e0b"></div></div>
+            </div>
+            <div class="progress-bar-wrap" style="margin:0">
+              <div class="pb-header"><div class="pb-label">🔥 Silk Board</div><div class="pb-value">8%</div></div>
+              <div class="progress-track"><div class="progress-fill" style="width:8%;background:#ef4444"></div></div>
+            </div>
+            <div class="progress-bar-wrap" style="margin:0">
+              <div class="pb-header"><div class="pb-label">🌡️ Marathahalli</div><div class="pb-value">12%</div></div>
+              <div class="progress-track"><div class="progress-fill" style="width:12%;background:#f97316"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AQI zones -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">AQI by Zone</div>
+          </div>
+          <div class="bar-chart" id="aqiChart" style="height:130px"></div>
+        </div>
+      </div>
+    </div>
+    <!-- END DASHBOARD -->
+
+
+    <!-- ▸▸▸ PROFILE SCREEN ◂◂◂ -->
+    <div class="screen" id="screen-profile">
+      <div class="page-header anim-1">
+        <div>
+          <div class="page-title">My <em>Profile</em></div>
+          <div class="page-sub">Preferences and walking health settings</div>
+        </div>
+        <button class="btn btn-primary btn-sm">✏️ Edit Profile</button>
+      </div>
+
+      <div class="profile-hero anim-2">
+        <div class="profile-avatar">👤</div>
+        <div>
+          <div class="profile-name">Shreyas Kumar</div>
+          <div class="profile-sub">📍 Bengaluru · Member since 2024 · 🌿 Eco Walker</div>
+        </div>
+        <div class="profile-stats">
+          <div class="ps-item">
+            <span class="ps-num">148</span>
+            <div class="ps-label">Walks</div>
+          </div>
+          <div class="ps-item">
+            <span class="ps-num">62km</span>
+            <div class="ps-label">Shaded</div>
+          </div>
+          <div class="ps-item">
+            <span class="ps-num">3.2°C</span>
+            <div class="ps-label">Avg Cooler</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--gray500);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;margin-top:4px">Route Preferences</div>
+          <div class="pref-list anim-3">
+            <div class="pref-item">
+              <div class="pref-icon sc-icon-green">🔥</div>
+              <div class="pref-text">
+                <div class="pref-title">Avoid Heat Zones</div>
+                <div class="pref-desc">Automatically route around areas above 40°C</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="pref-item">
+              <div class="pref-icon sc-icon-green">🌳</div>
+              <div class="pref-text">
+                <div class="pref-title">Prefer Tree Canopy</div>
+                <div class="pref-desc">Prioritise roads with high NDVI tree coverage</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="pref-item">
+              <div class="pref-icon sc-icon-sky">🛡️</div>
+              <div class="pref-text">
+                <div class="pref-title">High Safety Level</div>
+                <div class="pref-desc">Avoid low crime-score segments</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="pref-item">
+              <div class="pref-icon sc-icon-amber">💨</div>
+              <div class="pref-text">
+                <div class="pref-title">Pollution Avoidance</div>
+                <div class="pref-desc">Avoid AQI above 100 corridors</div>
+              </div>
+              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="pref-item">
+              <div class="pref-icon sc-icon-rose">👥</div>
+              <div class="pref-text">
+                <div class="pref-title">Low Crowd Routes</div>
+                <div class="pref-desc">Prefer less crowded walking paths</div>
+              </div>
+              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="pref-item">
+              <div class="pref-icon sc-icon-sky">🔔</div>
+              <div class="pref-text">
+                <div class="pref-title">Heat Alerts</div>
+                <div class="pref-desc">Notify when WBGT exceeds safe levels</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--gray500);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;margin-top:4px">Personal Settings</div>
+          <div class="card anim-3" style="padding:22px;margin-bottom:14px">
+            <div style="font-size:.82rem;font-weight:700;color:var(--gray700);margin-bottom:16px">Health Profile</div>
+            <div class="slider-wrap">
+              <div style="font-size:.75rem;font-weight:600;color:var(--gray600);margin-bottom:8px">Age</div>
+              <div class="slider-label"><span>18</span><span>30</span><span>60+</span></div>
+              <input type="range" class="slider" min="18" max="70" value="30" id="ageSlider" oninput="updateSlider(this,'ageVal')">
+              <div style="font-size:.72rem;color:var(--g600);font-weight:600;margin-top:4px">Age: <span id="ageVal">30</span> years</div>
+            </div>
+            <div class="slider-wrap" style="margin-top:14px">
+              <div style="font-size:.75rem;font-weight:600;color:var(--gray600);margin-bottom:8px">Walking Speed</div>
+              <div class="slider-label"><span>Slow</span><span>Normal</span><span>Fast</span></div>
+              <input type="range" class="slider" min="3" max="8" value="5" id="speedSlider" oninput="updateSlider(this,'speedVal')">
+              <div style="font-size:.72rem;color:var(--g600);font-weight:600;margin-top:4px">Speed: <span id="speedVal">5</span> km/h</div>
+            </div>
+            <div class="slider-wrap" style="margin-top:14px">
+              <div style="font-size:.75rem;font-weight:600;color:var(--gray600);margin-bottom:8px">Heat Sensitivity</div>
+              <div class="slider-label"><span>Low</span><span>Medium</span><span>High</span></div>
+              <input type="range" class="slider" min="1" max="5" value="3" id="sensSlider" oninput="updateSlider(this,'sensVal')">
+              <div style="font-size:.72rem;color:var(--g600);font-weight:600;margin-top:4px">Sensitivity: <span id="sensVal">3</span>/5</div>
+            </div>
+          </div>
+
+          <div class="card anim-4" style="padding:22px;background:var(--g50);border-color:var(--g200)">
+            <div style="font-size:.82rem;font-weight:700;color:var(--g700);margin-bottom:12px">🌿 Eco Impact Summary</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="text-align:center;padding:12px;background:var(--white);border-radius:12px;border:1px solid var(--g200)">
+                <div style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--g600)">62km</div>
+                <div style="font-size:.68rem;color:var(--gray500)">Walked in shade</div>
+              </div>
+              <div style="text-align:center;padding:12px;background:var(--white);border-radius:12px;border:1px solid var(--g200)">
+                <div style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--g600)">3.2°C</div>
+                <div style="font-size:.68rem;color:var(--gray500)">Avg cooler routes</div>
+              </div>
+              <div style="text-align:center;padding:12px;background:var(--white);border-radius:12px;border:1px solid var(--g200)">
+                <div style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--g600)">148</div>
+                <div style="font-size:.68rem;color:var(--gray500)">Green walks taken</div>
+              </div>
+              <div style="text-align:center;padding:12px;background:var(--white);border-radius:12px;border:1px solid var(--g200)">
+                <div style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--g600)">89%</div>
+                <div style="font-size:.68rem;color:var(--gray500)">Heat avoidance rate</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- END PROFILE -->
+
+  </main>
+
+</div>
+
+<!-- ══ MOBILE BOTTOM NAV ══ -->
+<div class="mobile-nav">
+  <div class="mn-items">
+    <a class="mn-item active" id="mn-home" onclick="switchScreen('home')">
+      <div class="mn-icon">🏠</div>Home
+    </a>
+    <a class="mn-item" id="mn-map" onclick="switchScreen('map')">
+      <div class="mn-icon">🗺️</div>Map
+    </a>
+    <a class="mn-item" id="mn-suggestions" onclick="switchScreen('suggestions')">
+      <div class="mn-icon">✨</div>AI
+    </a>
+    <a class="mn-item" id="mn-dashboard" onclick="switchScreen('dashboard')">
+      <div class="mn-icon">📊</div>Stats
+    </a>
+    <a class="mn-item" id="mn-profile" onclick="switchScreen('profile')">
+      <div class="mn-icon">👤</div>Profile
+    </a>
+  </div>
+</div>
+
+<!-- ══ NAV BOUNCE KEYFRAME ══ -->
+<style>
+@keyframes nav-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+</style>
+
+<script>
+// ══════════════════════════════
+// SCREEN SWITCHER
+// ══════════════════════════════
+const screens = ['home','map','suggestions','dashboard','profile'];
+
+function switchScreen(name) {
+  screens.forEach(s => {
+    const el = document.getElementById('screen-'+s);
+    if(el) el.classList.toggle('active', s===name);
+    const sb = document.getElementById('sb-'+s);
+    if(sb) sb.classList.toggle('active', s===name);
+    const mn = document.getElementById('mn-'+s);
+    if(mn) mn.classList.toggle('active', s===name);
+  });
+
+  // Nav pills
+  document.querySelectorAll('.nav-pill').forEach((p,i)=>{
+    p.classList.toggle('active', screens[i]===name);
+  });
+
+  // Re-run animations
+  const active = document.getElementById('screen-'+name);
+  if(active) {
+    active.querySelectorAll('[class*="anim-"]').forEach(el=>{
+      el.style.animation='none';
+      el.offsetHeight;
+      el.style.animation='';
+    });
+  }
+}
+
+// ══════════════════════════════
+// ROUTE OPTION SELECTOR
+// ══════════════════════════════
+function selectRoute(el, mode) {
+  document.querySelectorAll('.route-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ══════════════════════════════
+// LAYER TOGGLE
+// ══════════════════════════════
+function toggleLayer(btn) {
+  btn.classList.toggle('active-layer');
+  if(btn.classList.contains('active-layer')) {
+    btn.className='btn btn-secondary btn-sm layer-btn active-layer';
+  } else {
+    btn.className='btn btn-ghost btn-sm layer-btn';
+  }
+}
+
+// ══════════════════════════════
+// SLIDER
+// ══════════════════════════════
+function updateSlider(input, valId) {
+  document.getElementById(valId).textContent = input.value;
+  const pct = (input.value - input.min) / (input.max - input.min) * 100;
+  input.style.background = `linear-gradient(to right, var(--g500) 0%, var(--g500) ${pct}%, var(--gray200) ${pct}%)`;
+}
+
+// ══════════════════════════════
+// NAV START ANIMATION
+// ══════════════════════════════
+function startNavigation() {
+  switchScreen('map');
+}
+
+// ══════════════════════════════
+// BAR CHART — Temperature
+// ══════════════════════════════
+function buildTempChart() {
+  const data = [28,30,33,36,38,40,41,42,41,39,37,34];
+  const labels = ['6','7','8','9','10','11','12','1','2','3','4','5'];
+  const maxVal = Math.max(...data);
+  const el = document.getElementById('tempChart');
+  if(!el) return;
+  el.innerHTML='';
+  data.forEach((v,i)=>{
+    const col = document.createElement('div');
+    col.className='bar-col';
+    const pct = (v/maxVal)*100;
+    const color = v<36?'var(--g400)':v<40?'#fb923c':'#ef4444';
+    col.innerHTML=`
+      <div class="bar" style="height:${pct}%;background:${color}" title="${v}°C at ${labels[i]}PM"></div>
+      <div class="bar-label">${labels[i]}</div>
+    `;
+    el.appendChild(col);
+  });
+}
+
+// ══════════════════════════════
+// HEAT GRID
+// ══════════════════════════════
+function buildHeatGrid() {
+  const el = document.getElementById('heatGrid');
+  if(!el) return;
+  const vals = [
+    .3,.4,.5,.6,.7,.8,.9,.85,.7,.5,
+    .25,.35,.45,.55,.7,.85,.9,.8,.65,.45,
+    .2,.3,.4,.5,.6,.7,.8,.75,.6,.4,
+    .15,.25,.4,.5,.55,.65,.75,.7,.55,.35,
+    .2,.3,.35,.45,.5,.6,.7,.65,.5,.3,
+    .3,.4,.45,.5,.55,.6,.65,.6,.5,.35,
+    .35,.45,.5,.55,.6,.65,.7,.65,.55,.4,
+    .4,.5,.55,.6,.65,.7,.75,.7,.6,.45,
+    .45,.55,.6,.65,.7,.75,.8,.75,.65,.5,
+    .5,.6,.65,.7,.75,.8,.85,.8,.7,.55,
+  ];
+  vals.forEach(v=>{
+    const cell = document.createElement('div');
+    cell.className = 'heat-cell';
+    const r = Math.round(v*255);
+    const g = Math.round((1-v)*200+50);
+    cell.style.background = `rgb(${r},${g},50)`;
+    cell.title = `Heat: ${(v*100).toFixed(0)}%`;
+    el.appendChild(cell);
+  });
+}
+
+// AQI Bar Chart
+function buildAqiChart() {
+  const zones=['Lalbagh','Cubbon','MG Rd','Indinagar','Korama','S.Board','Marath','E-City'];
+  const vals=[72,80,112,125,135,188,175,162];
+  const el=document.getElementById('aqiChart');
+  if(!el) return;
+  el.innerHTML='';
+  const max=Math.max(...vals);
+  zones.forEach((z,i)=>{
+    const col=document.createElement('div');
+    col.className='bar-col';
+    const pct=(vals[i]/max)*100;
+    const c=vals[i]<100?'var(--g400)':vals[i]<150?'#fb923c':'#ef4444';
+    col.innerHTML=`
+      <div class="bar" style="height:${pct}%;background:${c};min-height:6px" title="${z}: AQI ${vals[i]}"></div>
+      <div class="bar-label" style="font-size:.5rem;max-width:28px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${z.replace(' ','')}</div>
+    `;
+    el.appendChild(col);
+  });
+}
+
+// ══════════════════════════════
+// LIVE TICKER
+// ══════════════════════════════
+function tickLive(){
+  const t=(35+Math.random()*5).toFixed(1);
+  const a=Math.floor(Math.random()*40+120);
+  const el1=document.getElementById('sb-temp');
+  const el2=document.getElementById('sb-aqi');
+  if(el1) el1.textContent=t+'°C';
+  if(el2) el2.textContent=a;
+}
+
+// ══════════════════════════════
+// INIT
+// ══════════════════════════════
+window.addEventListener('load',()=>{
+  buildTempChart();
+  buildHeatGrid();
+  buildAqiChart();
+  setInterval(tickLive, 5000);
+
+  // Animate bars on load
+  setTimeout(()=>{
+    document.querySelectorAll('.progress-fill').forEach(f=>{
+      const w = f.style.width;
+      f.style.width='0';
+      setTimeout(()=>{ f.style.width=w; }, 100);
+    });
+  }, 400);
+});
+</script>
+
+
+<script>
+// ══════════════════════════════════════════════════
+//  SHADEROUTE AI — BACKEND API INTEGRATION
+//  Connects frontend to FastAPI backend on port 8000
+// ══════════════════════════════════════════════════
+
+const API_BASE = 'http://localhost:8000';
+
+// ── Toast helper (reuse from main code) ──────────
+function apiToast(msg, type='info'){
+  const colors = {info:'#22c55e', error:'#ef4444', warn:'#f59e0b'};
+  const t = document.createElement('div');
+  t.style.cssText = `
+    position:fixed;top:80px;right:20px;z-index:9999;
+    background:${type==='error'?'#fee2e2':type==='warn'?'#fef9c3':'#f0fdf4'};
+    border:1px solid ${colors[type]};
+    border-radius:12px;padding:10px 16px;
+    font-family:'DM Sans',sans-serif;font-size:.82rem;
+    color:${type==='error'?'#991b1b':'#166534'};
+    box-shadow:0 4px 20px rgba(0,0,0,.1);
+    animation:fadeInDown .3s ease;max-width:320px;
+    display:flex;align-items:center;gap:8px;
+  `;
+  t.innerHTML = (type==='error'?'❌ ':type==='warn'?'⚠️ ':'✅ ') + msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),400); }, 3500);
+}
+
+// ── Animated counter ─────────────────────────────
+function animateValue(el, start, end, decimals=0, suffix=''){
+  if(!el) return;
+  const duration = 800;
+  const startTime = performance.now();
+  function update(now){
+    const pct  = Math.min((now-startTime)/duration, 1);
+    const ease = 1 - Math.pow(1-pct, 3);
+    const val  = start + (end-start)*ease;
+    el.textContent = val.toFixed(decimals) + suffix;
+    if(pct < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+// ── Loading state ─────────────────────────────────
+function setLoading(el, loading){
+  if(!el) return;
+  if(loading){ el.dataset.orig = el.textContent; el.textContent='...'; el.style.opacity='.5'; }
+  else        { el.textContent = el.dataset.orig||el.textContent; el.style.opacity='1'; }
+}
+
+// ══════════════════════════════════════════════════
+//  LOAD ENVIRONMENT DATA → Home Screen
+// ══════════════════════════════════════════════════
+async function loadEnvironment(){
+  try {
+    const r = await fetch(`${API_BASE}/api/environment`);
+    const d = await r.json();
+
+    // Top stat cards
+    const tempEl   = document.querySelector('#screen-home .sc-value');
+    const aqiCards = document.querySelectorAll('#screen-home .sc-value');
+
+    // Sidebar live values
+    const sbTemp = document.getElementById('sb-temp');
+    const sbAqi  = document.getElementById('sb-aqi');
+    if(sbTemp) animateValue(sbTemp, 35, d.temperature_c, 1, '°C');
+    if(sbAqi)  animateValue(sbAqi,  100, d.aqi, 0, '');
+
+    // Env strip cards
+    const shadePctEl = document.getElementById('shadePct');
+    if(shadePctEl) animateValue(shadePctEl, 35, d.shadow_avg_pct, 0, '%');
+
+    // Welcome banner temp badges
+    document.querySelectorAll('.wb-temp-badge').forEach((b,i)=>{
+      if(i===0) b.textContent = `🌡️ ${d.temperature_c}°C Feels ${d.feels_like_c}°C`;
+      if(i===1) b.textContent = `☀️ UV ${d.uv_index}`;
+      if(i===2) b.textContent = `💧 ${d.humidity_pct}% Humid`;
+    });
+
+    // Walking advice
+    if(d.walking_advice){
+      document.querySelectorAll('.page-sub').forEach(el=>{
+        if(el.textContent.includes('coolest route')) el.textContent = d.walking_advice + ' · Bengaluru';
+      });
+    }
+
+    // Stat grid on home
+    const statVals = document.querySelectorAll('#screen-home .stat-card .sc-value');
+    if(statVals[0]) animateValue(statVals[0], 50, d.shadow_avg_pct, 0, '%');
+    if(statVals[1]) animateValue(statVals[1], 35, d.temperature_c, 0, '°C');
+    if(statVals[2]) animateValue(statVals[2], 100, d.aqi, 0, ' aqi');
+
+    console.log('✅ Environment loaded:', d.conditions);
+  } catch(e) {
+    console.warn('Environment API offline — using demo data');
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  LOAD SUN DATA
+// ══════════════════════════════════════════════════
+async function loadSunData(){
+  try {
+    const r = await fetch(`${API_BASE}/api/sun`);
+    const d = await r.json();
+    console.log('☀️ Sun:', d.altitude_deg+'° alt,', d.azimuth_deg+'° azi');
+
+    // Update sun markers in map screens
+    document.querySelectorAll('.sun-marker').forEach(el=>{
+      el.textContent = `☀️ Alt ${d.altitude_deg}° · Shadow ${d.shadow_length_x}x`;
+    });
+
+    // Nav instruction sun info
+    const sunInfoEls = document.querySelectorAll('.nl-sub, .floating-card .sc-detail');
+    sunInfoEls.forEach(el=>{
+      if(el.textContent.includes('shadow')) el.textContent = `☀️ Sun Alt ${d.altitude_deg}° · Shadow ${d.shadow_length_x}x height`;
+    });
+  } catch(e) {
+    console.warn('Sun API offline');
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  COMPUTE ROUTE → wired to route button
+// ══════════════════════════════════════════════════
+async function apiComputeRoute(mode){
+  const origin = document.getElementById('originInput')?.value || 'Koramangala 5th Block';
+  const dest   = document.getElementById('destInput')?.value   || 'MG Road Metro';
+  const btn    = document.querySelector('.route-search-block .btn-primary');
+
+  if(btn){ btn.textContent='🔄 Finding Route...'; btn.disabled=true; }
+
+  // Use fixed Bengaluru coords (would use geocoder in production)
+  const ORIGINS = {'koramangala':{'lat':12.9344,'lon':77.6249}, 'majestic':{'lat':12.9777,'lon':77.5727}, 'lalbagh':{'lat':12.9508,'lon':77.5848}};
+  const DESTS   = {'mgroad':{'lat':12.9747,'lon':77.6069}, 'cubbon':{'lat':12.9763,'lon':77.5929}, 'indiranagar':{'lat':12.9784,'lon':77.6408}};
+
+  const oKey = Object.keys(ORIGINS).find(k=>origin.toLowerCase().includes(k)) || 'koramangala';
+  const dKey = Object.keys(DESTS).find(k=>dest.toLowerCase().includes(k))     || 'mgroad';
+
+  try {
+    const r = await fetch(`${API_BASE}/api/route`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        origin_lat: ORIGINS[oKey].lat, origin_lon: ORIGINS[oKey].lon,
+        dest_lat:   DESTS[dKey].lat,   dest_lon:   DESTS[dKey].lon,
+        mode:       mode, user_age:30
+      })
+    });
+    const d = await r.json();
+    updateRouteUI(d);
+    apiToast(`${mode.toUpperCase()} route found — ${d.shadow_pct}% shaded, score ${d.route_score}`);
+    switchScreen('map');
+  } catch(e){
+    apiToast('Backend offline — showing demo route', 'warn');
+    switchScreen('map');
+  }
+
+  if(btn){ btn.textContent='🌿 Find Shady Route'; btn.disabled=false; }
+}
+
+function updateRouteUI(d){
+  // Map screen floating card
+  const fc = document.querySelector('#screen-map .floating-card');
+  if(fc){
+    const vals = fc.querySelectorAll('[style*="DM Serif Display"]');
+    if(vals[0]) animateValue(vals[0], 0, d.distance_km, 1);
+    if(vals[1]) animateValue(vals[1], 0, d.shadow_pct, 0, '%');
+    if(vals[2]) animateValue(vals[2], 30, d.avg_temp_c, 0, '°C');
+    const eta = fc.querySelector('[style*="ETA"]');
+    const etaParent = fc.querySelectorAll('[style*="DM Serif Display"]');
+    if(etaParent[3]) animateValue(etaParent[3], 0, d.duration_min, 0, 'm');
+  }
+
+  // Heat stress in route card area
+  const wbgtEl = document.querySelector('.wbgt-val');
+  if(wbgtEl && d.heat_stress) animateValue(wbgtEl, 20, d.heat_stress.wbgt_c, 1);
+
+  // Route comparison cards
+  const rcards = document.querySelectorAll('#screen-map .progress-fill');
+  if(rcards.length > 0 && d.mode === 'cool') {
+    rcards[0].style.width = d.shadow_pct + '%';
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  LOAD ROUTE COMPARISON → Map screen
+// ══════════════════════════════════════════════════
+async function loadRouteComparison(){
+  try {
+    const r = await fetch(`${API_BASE}/api/routes/compare?origin_lat=12.9344&origin_lon=77.6249&dest_lat=12.9747&dest_lon=77.6069`);
+    const d = await r.json();
+    const routes = d.routes;
+
+    const cards = document.querySelectorAll('#screen-map .chart-grid ~ div > .card, #screen-map > div:last-child .card');
+    if(routes.cool && cards[0]){
+      cards[0].querySelector('.sc-value') && animateValue(cards[0].querySelector('.pb-value'), 0, routes.cool.shadow_pct, 0, '%');
+      cards[0].querySelector('.progress-fill').style.width = routes.cool.shadow_pct+'%';
+    }
+  } catch(e){ console.warn('Route compare offline'); }
+}
+
+// ══════════════════════════════════════════════════
+//  LOAD DASHBOARD DATA
+// ══════════════════════════════════════════════════
+async function loadDashboard(){
+  try {
+    const r = await fetch(`${API_BASE}/api/dashboard`);
+    const d = await r.json();
+
+    // Stat cards
+    const dStats = document.querySelectorAll('#screen-dashboard .stat-card .sc-value');
+    if(dStats[0]) animateValue(dStats[0], 40, d.peak_heat_c, 1, '°C');
+    if(dStats[1]) animateValue(dStats[1], 30, d.avg_shadow_pct, 0, '%');
+    if(dStats[2]) animateValue(dStats[2], 0.3, d.avg_ndvi, 2, ' ndvi');
+    if(dStats[3]) animateValue(dStats[3], 5, d.active_heat_zones, 0, ' zones');
+
+    // Rebuild temp chart with real data
+    rebuildTempChart(d.hourly_temp);
+
+    // Rebuild shadow bars
+    rebuildShadowBars(d.zone_shadows);
+
+    // Rebuild AQI chart
+    rebuildAQIChart(d.zone_aqi);
+
+    console.log('📊 Dashboard loaded');
+  } catch(e){ console.warn('Dashboard API offline'); }
+}
+
+function rebuildTempChart(hourly){
+  const el = document.getElementById('tempChart');
+  if(!el || !hourly) return;
+  el.innerHTML='';
+  const max = Math.max(...hourly.map(h=>h.temp_c));
+  hourly.forEach(h=>{
+    const pct   = (h.temp_c/max)*100;
+    const color = h.temp_c<36?'var(--g400)':h.temp_c<40?'#fb923c':'#ef4444';
+    const col   = document.createElement('div');
+    col.className='bar-col';
+    col.innerHTML=`<div class="bar" style="height:${pct}%;background:${color}" title="${h.temp_c}°C at ${h.label}"></div>
+                   <div class="bar-label">${h.hour}</div>`;
+    el.appendChild(col);
+  });
+}
+
+function rebuildShadowBars(zones){
+  const els = document.querySelectorAll('#screen-dashboard .progress-fill');
+  if(!zones || els.length===0) return;
+  zones.forEach((z,i)=>{
+    if(els[i]){
+      const color = z.shadow_pct>70?'var(--g500)':z.shadow_pct>40?'#f59e0b':'#ef4444';
+      els[i].style.cssText = `width:${z.shadow_pct}%;background:${color}`;
+      const valEl = els[i].closest('.progress-bar-wrap')?.querySelector('.pb-value');
+      if(valEl) valEl.textContent = z.shadow_pct+'%';
+    }
+  });
+}
+
+function rebuildAQIChart(zones){
+  const el = document.getElementById('aqiChart');
+  if(!el || !zones) return;
+  el.innerHTML='';
+  const max = Math.max(...zones.map(z=>z.aqi));
+  zones.forEach(z=>{
+    const pct  = (z.aqi/max)*100;
+    const color= z.aqi<100?'var(--g400)':z.aqi<150?'#fb923c':'#ef4444';
+    const col  = document.createElement('div');
+    col.className='bar-col';
+    col.innerHTML=`<div class="bar" style="height:${pct}%;background:${color};min-height:6px" title="${z.zone}: AQI ${z.aqi}"></div>
+                   <div class="bar-label" style="font-size:.5rem">${z.zone.replace(' ','')}</div>`;
+    el.appendChild(col);
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  LOAD AI SUGGESTIONS
+// ══════════════════════════════════════════════════
+async function loadSuggestions(){
+  try {
+    const r = await fetch(`${API_BASE}/api/suggestions`);
+    const d = await r.json();
+    const list = document.querySelector('#screen-suggestions .suggestion-list');
+    if(!list || !d.suggestions) return;
+    list.innerHTML = '';
+    d.suggestions.forEach(s=>{
+      const colorMap = {green:'tag-green', sky:'tag-sky', amber:'tag-amber', rose:'tag-rose'};
+      const bgMap    = {green:'bg-green-soft', sky:'bg-sky-soft', amber:'bg-amber-soft', rose:'bg-rose-soft'};
+      const div = document.createElement('div');
+      div.className = 'suggestion-card';
+      div.innerHTML = `
+        <div class="sc-badge-icon ${bgMap[s.tag_color]||'bg-green-soft'}">${s.icon}</div>
+        <div class="sc-content">
+          <div class="sc-heading">${s.title}</div>
+          <div class="sc-detail">${s.detail}</div>
+          <div style="margin-top:6px"><span class="tag ${colorMap[s.tag_color]||'tag-green'}">${s.tag}</span></div>
+        </div>
+        <div class="sc-arrow">›</div>`;
+      list.appendChild(div);
+    });
+
+    // Update WBGT
+    const wbgtEl = document.querySelector('#screen-suggestions .sc-value[style*="DM Serif"]');
+    if(wbgtEl && d.wbgt_c) animateValue(wbgtEl, 20, d.wbgt_c, 1);
+    const riskEl = document.querySelector('#screen-suggestions .sc-value + .sc-label');
+    if(riskEl && d.risk) riskEl.previousElementSibling.textContent = d.risk;
+
+    console.log('✨ Suggestions loaded:', d.suggestions.length);
+  } catch(e){ console.warn('Suggestions API offline'); }
+}
+
+// ══════════════════════════════════════════════════
+//  LOAD PROFILE
+// ══════════════════════════════════════════════════
+async function loadProfile(){
+  try {
+    const r = await fetch(`${API_BASE}/api/profile`);
+    const d = await r.json();
+    const ps = document.querySelectorAll('.ps-num');
+    if(ps[0]) animateValue(ps[0], 0, d.stats.walks, 0);
+    if(ps[1]){ ps[1].dataset.suffix='km'; animateValue(ps[1], 0, d.stats.km_shaded, 0, 'km'); }
+    if(ps[2]){ ps[2].dataset.suffix='°C'; animateValue(ps[2], 0, d.stats.avg_cooler_c, 1, '°C'); }
+    console.log('👤 Profile loaded');
+  } catch(e){ console.warn('Profile API offline'); }
+}
+
+// ══════════════════════════════════════════════════
+//  WIRE BUTTONS
+// ══════════════════════════════════════════════════
+function wireButtons(){
+  // Route search button
+  const routeBtn = document.querySelector('.route-search-block .btn-primary');
+  if(routeBtn){
+    routeBtn.onclick = ()=>{
+      const sel = document.querySelector('.route-option.selected');
+      const mode = sel ? (sel.querySelector('.ro-label').textContent.toLowerCase().split(' ')[0]) : 'cool';
+      apiComputeRoute(mode);
+    };
+  }
+
+  // Navbar navigate button
+  const navBtn = document.querySelector('.navbar .btn-primary');
+  if(navBtn) navBtn.onclick = ()=>{ loadRouteComparison(); switchScreen('map'); };
+
+  // Refresh button in suggestions
+  const refreshBtn = document.querySelector('#screen-suggestions .btn-primary');
+  if(refreshBtn) refreshBtn.onclick = ()=>{ loadSuggestions(); apiToast('AI Suggestions refreshed!'); };
+
+  // Dashboard export (demo)
+  const exportBtn = document.querySelector('#screen-dashboard .btn-primary');
+  if(exportBtn) exportBtn.onclick = ()=>{ apiToast('Dashboard export — download starts shortly'); };
+
+  // Heat stress sliders on profile
+  ['ageSlider','speedSlider','sensSlider'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('change', recalcHeatStress);
+  });
+}
+
+async function recalcHeatStress(){
+  const age   = parseInt(document.getElementById('ageSlider')?.value||30);
+  const speed = parseFloat(document.getElementById('speedSlider')?.value||5);
+  try {
+    const r = await fetch(`${API_BASE}/api/heat-stress`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({age,temperature_c:38,humidity_pct:65,shadow_pct:50,distance_km:2,speed_kmh:speed})
+    });
+    const d = await r.json();
+    console.log('Heat stress recalculated:', d.risk_level, d.wbgt_c);
+    apiToast(`WBGT ${d.wbgt_c}°C — ${d.risk_level} risk · ${d.advice}`,
+      d.risk_level==='EXTREME'?'error':d.risk_level==='HIGH'?'warn':'info');
+  } catch(e){}
+}
+
+// ══════════════════════════════════════════════════
+//  SCREEN CHANGE → load data for each screen
+// ══════════════════════════════════════════════════
+const origSwitch = window.switchScreen;
+window.switchScreen = function(name){
+  origSwitch(name);
+  if(name==='home')        { loadEnvironment(); loadSunData(); }
+  if(name==='map')         { loadSunData(); loadRouteComparison(); }
+  if(name==='suggestions') { loadSuggestions(); }
+  if(name==='dashboard')   { loadDashboard(); }
+  if(name==='profile')     { loadProfile(); }
+};
+
+// ══════════════════════════════════════════════════
+//  INIT — runs when page loads
+// ══════════════════════════════════════════════════
+window.addEventListener('load', async ()=>{
+  // Small delay so original JS runs first
+  setTimeout(async ()=>{
+    wireButtons();
+    await loadEnvironment();
+    await loadSunData();
+    setInterval(loadEnvironment, 30000); // refresh every 30s
+    setInterval(loadSunData, 60000);     // refresh sun every 1 min
+
+    // Check backend is up
+    try {
+      const r = await fetch(`${API_BASE}/api/health`);
+      const d = await r.json();
+      apiToast(`ShadeRoute AI connected · Bengaluru · pysolar: ${d.pysolar}`);
+    } catch(e){
+      apiToast('Backend offline — run: python run.py', 'warn');
+    }
+  }, 600);
+});
+
+// CSS for toast animation
+const style = document.createElement('style');
+style.textContent = '@keyframes fadeInDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}';
+document.head.appendChild(style);
+</script>
+
+</body>
+</html>
